@@ -1,39 +1,49 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 
 import classes from './AvailableMeals.module.css'
 import Card from "../UI/Card";
 import MealItem from "./MealItem/MealItem";
 
-const DUMMY_MEALS = [
-  {
-    id: 'm1',
-    name: 'Sushi',
-    description: 'Finest fish and veggies',
-    price: 22.99,
-  },
-  {
-    id: 'm2',
-    name: 'Schnitzel',
-    description: 'A german specialty!',
-    price: 16.5,
-  },
-  {
-    id: 'm3',
-    name: 'Barbecue Burger',
-    description: 'American, raw, meaty',
-    price: 12.99,
-  },
-  {
-    id: 'm4',
-    name: 'Green Bowl',
-    description: 'Healthy...and green...',
-    price: 18.99,
-  },
-];
 
 const AvailableMeals = () => {
 
-  const mealsList = DUMMY_MEALS.map(meal => (
+  const [meals, setMeals] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [httpError, setHttpError] = useState(null)
+
+  useEffect(() => {
+    const fetchMeals = async () => {
+      const response = await fetch('https://react-backend-cf21f-default-rtdb.firebaseio.com/meals.json')
+
+      if (!response.ok) {
+        throw new Error(`smth went wrong \n ${response.status}`)
+      }
+
+      const data = await response.json()
+      const loadedMeals = []
+
+      for (const key in data) {
+        loadedMeals.push({
+          id: key,
+          name: data[key].name,
+          description: data[key].description,
+          price: data[key].price
+        })
+      }
+
+      setMeals(loadedMeals)
+      setIsLoading(false)
+    }
+
+      fetchMeals().then(() => console.log('all is ok')).catch(e => {
+        setIsLoading(false)
+        setHttpError(e.message)
+        console.log(e.status + e.message)
+      })
+
+  }, [])
+
+  const mealsList = meals.map(meal => (
     <MealItem
       id={meal.id}
       key={meal.id}
@@ -42,6 +52,22 @@ const AvailableMeals = () => {
       price={meal.price}
     />
   ))
+
+  if (isLoading) {
+    return (
+      <section className={classes.load}>
+        <p>Loading...</p>
+      </section>
+    )
+  }
+
+  if (httpError) {
+    return (
+      <section className={classes.error}>
+        <p>{httpError}</p>
+      </section>
+    )
+  }
 
   return (
     <section className={classes.meals}>
